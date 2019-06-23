@@ -16,7 +16,8 @@ public class PresetState {
         High,
         HighBall,
         Ball,
-        Climb
+        Climb,
+        Start
     }
 
     private static Preset presetState = Preset.Manual;
@@ -51,7 +52,7 @@ public class PresetState {
 
     /** Returns {@code true} if `oper.getPOV()` permits presets. */
     public static boolean getPOVStatus() {
-        return (Robot.m_oi.oper.getPOV() != -1 && Robot.m_oi.oper.getButtonCount() != 0) || Robot.m_oi.triangleDriver.get() || Robot.m_oi.psButtonOper.get();
+        return (Robot.m_oi.oper.getPOV() != -1 && Robot.m_oi.oper.getButtonCount() != 0) || Robot.m_oi.triangleDriver.get() || Robot.m_oi.psButtonOper.get() || Robot.m_oi.psButtonDriver.get();
     }
 
     public static Preset getPreset() {
@@ -73,6 +74,9 @@ public class PresetState {
         else if (Robot.m_oi.triangleDriver.get()) {
             presetState = Preset.Climb;
         }
+        else if (Robot.m_oi.psButtonDriver.get()) {
+            presetState = Preset.Start;
+        }
         else if (!getStatus()) {
             presetState = Preset.Manual;
         }
@@ -93,6 +97,12 @@ public class PresetState {
             return presetState;
         }
 
+        if (presetState.equals(Preset.Start)) {
+            if (RobotMap.rightArm.getPosition() > 30) {
+                lastPreset = Preset.Mid;
+            }
+        }
+
         switch(presetState) {
         case High:
         case HighBall:
@@ -108,12 +118,17 @@ public class PresetState {
             break;
         case Climb:
             break;
+        case Start:
+            if ((lastPreset.equals(Preset.Mid) && Robot.kTelescopeSubsystem.atPreset) || (lastPreset.equals(Preset.Low) && !Robot.kArmSubsystem.atPreset)) {
+                lastPreset = Preset.Low;
+                return Preset.Low;
+            }
         case Low:
             if (lastPreset.equals(Preset.Ball) && RobotMap.leftElevator.getEncoder() < 3000) {
                 return Preset.Mid;
             }
         default:
-            if (RobotMap.telescope.getEncoder() >= 7000 && !lastPreset.equals(Preset.Low)) {
+            if (RobotMap.telescope.getEncoder() >= 7000 && !lastPreset.equals(Preset.Low) && !lastPreset.equals(Preset.Start)) {
                 lastPreset = Preset.Mid;
                 return Preset.Mid;
             }
